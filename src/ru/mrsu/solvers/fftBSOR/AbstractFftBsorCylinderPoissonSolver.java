@@ -144,4 +144,28 @@ public abstract class AbstractFftBsorCylinderPoissonSolver extends AbstractCylin
         }
         return vecR;
     }
+
+    protected double[] getOmegas(double[] lambdas, double nr, double nz, double hr, double hz) {
+        double[] omegas = new double[lambdas.length];
+        double l_0 = 4 * ((Math.pow(Math.sin(Math.PI / (2 * (nr + 1))) / (hr * hr), 2)) + ((Math.pow(Math.sin(Math.PI / (2 * (nz + 1))) / (hz * hz), 2))));
+
+        omegas[0] = 1.95;
+
+        for (int i = 1; i < lambdas.length; i++) {
+            double l_max_i = l_0 + Math.abs(lambdas[i]) / hr;
+            double l_min_i = l_0 + Math.abs(lambdas[i]) / (nr * hr);
+            omegas[i] = 2 / (1 + Math.sqrt(1 - Math.pow(l_min_i / l_max_i, 2)));
+        }
+
+        return omegas;
+    }
+
+    protected double[] getLambdas(int nfi, double hfi) {
+        double[] lambdas = new double[nfi];
+        for (int m = 0; m < nfi; m++) {
+            int mVal = m <= nfi / 2 ? m : m - nfi;
+            lambdas[m] = (4 / (hfi*hfi)) * Math.pow(Math.sin(mVal * hfi / 2), 2);
+        }
+        return lambdas;
+    }
 }

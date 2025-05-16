@@ -7,7 +7,7 @@ import ru.mrsu.solvers.fftBSOR.AbstractFftBsorCylinderPoissonSolver;
 
 public class CylinderPoissonFftBsorSolverIterable extends AbstractFftBsorCylinderPoissonSolver {
 
-    private double[][][] solveByFftBsor(int num, double r, double z0, double z1, double hr, double hfi, double hz, double eps, double omega) {
+    private double[][][] solveByFftBsor(int num, double r, double z0, double z1, double hr, double hfi, double hz, double eps) {
         int nr = (int) (r / hr)+1;
         int nfi = (int) (2 * Math.PI / hfi);
         int nz = (int) ((z1 - z0) / hz)+1;
@@ -75,11 +75,13 @@ public class CylinderPoissonFftBsorSolverIterable extends AbstractFftBsorCylinde
 
         // BSOR
         long start2 = System.nanoTime();
+
+        double[] lambdas = getLambdas(nfi, hfi);
+        double[] omegas = getOmegas(lambdas, nr, nz, hr, hz);
+
         for (int m = 0; m < nfi; m++) {
-            int mVal = m <= nfi / 2 ? m : m - nfi;
-            double lambda = (4 / (hfi*hfi)) * Math.sin(mVal * hfi / 2) * Math.sin(mVal * hfi / 2);
             double[][][] resReIm = new double[2][nr][nz];
-            blockSOR(lambda, m, uinRe[m], uinIm[m], fRe[m], fIm[m], hr, hz, omega, eps, resReIm);
+            blockSOR(lambdas[m], m, uinRe[m], uinIm[m], fRe[m], fIm[m], hr, hz, omegas[m], eps, resReIm);
             uinRe[m] = resReIm[0];
             uinIm[m] = resReIm[1];
         }
@@ -116,7 +118,6 @@ public class CylinderPoissonFftBsorSolverIterable extends AbstractFftBsorCylinde
     }
 
     public double[][][] solve(int num, double r, double z0, double z1, double hr, double hfi, double hz, double eps) {
-        double omega = 1.5;
-        return solveByFftBsor(num, r, z0,z1, hr, hfi, hz, eps, omega);
+        return solveByFftBsor(num, r, z0,z1, hr, hfi, hz, eps);
     }
 }
