@@ -63,7 +63,7 @@ public abstract class AbstractCylinderPoissonSolver {
         }
 
         DecartCoords[][][] decartCoords = DecartCoords.convertToDecartCoords3D(uin, hfi, hr, hz);
-        VtkWriter.writeVtk(decartCoords, nr, nfi, nz, "fftResTochn");
+        VtkWriter.writeVtk(decartCoords, nr, nfi, nz, "resTochn");
         return uin;
     }
 
