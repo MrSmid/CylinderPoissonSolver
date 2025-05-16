@@ -14,24 +14,6 @@ public class CylinderPoissonFftBsorSolverParallel extends AbstractFftBsorCylinde
 
     private final Executor executor = Executor.getExecutor();
 
-    private class ModeInfo {
-        final int m;
-        final double lambda;
-        final double weight;
-
-        double omega;
-
-        ModeInfo(int m, double lambda) {
-            this.m = m;
-            this.lambda = lambda;
-            if (Math.abs(lambda) < 1E-20) {
-                this.weight = 100.;
-            } else {
-                this.weight = (1 / lambda) + (1. / m);
-            }
-        }
-    }
-
     private double[][][] solveByFftBsor(int num, double r, double z0, double z1, double hr, double hfi, double hz, double eps) {
         int nr = (int) (r / hr)+1;
         int nfi = (int) (2 * Math.PI / hfi)+1;
@@ -112,34 +94,26 @@ public class CylinderPoissonFftBsorSolverParallel extends AbstractFftBsorCylinde
 
         // BSOR
         long start2 = System.nanoTime();
-        List<ModeInfo> modeInfoList = new ArrayList<>();
+
+        double[] lambdas = getLambdas(nfi, hfi);
+        double[] omegas = getOmegas(lambdas, nr, nz, hr, hz);
+
+        List<CompletableFuture<Void>> resFutures = new ArrayList<>();
         for (int m = 0; m < nfi; m++) {
-            int mVal = m <= nfi / 2 ? m : m - nfi;
-            double lambda = (4 / (hfi*hfi)) * Math.pow(Math.sin(mVal * hfi / 2), 2);
-            modeInfoList.add(new ModeInfo(m, lambda));
-        }
-        List<List<ModeInfo>> coreTasks = getCoreTasksLoad(modeInfoList);
-        List<CompletableFuture<Void>> coreTasksFutures = new ArrayList<>();
-        for (int i = 0; i < coreTasks.size(); i++) {
-            int finalI = i;
+            int finalM = m;
             CompletableFuture<Void> resFuture = executor.runAsync(() -> {
-                long coreStart = System.nanoTime();
-                for (ModeInfo modeInfo : coreTasks.get(finalI)) {
-                    double[][][] resReIm = new double[2][nr][nz];
-                    blockSOR(modeInfo.lambda, modeInfo.m, uinRe[modeInfo.m], uinIm[modeInfo.m], fRe[modeInfo.m], fIm[modeInfo.m], hr, hz, modeInfo.omega, eps, resReIm);
-                    uinRe[modeInfo.m] = resReIm[0];
-                    uinIm[modeInfo.m] = resReIm[1];
-                }
-                long coreEnd = System.nanoTime();
-                printMillis(coreStart, coreEnd, "core " + finalI + ", tasks: " + coreTasks.get(finalI).size() + ", time" + ": ");
+                double[][][] resReIm = new double[2][nr][nz];
+                blockSOR(lambdas[finalM], finalM, uinRe[finalM], uinIm[finalM], fRe[finalM], fIm[finalM], hr, hz, omegas[finalM], eps, resReIm);
+                uinRe[finalM] = resReIm[0];
+                uinIm[finalM] = resReIm[1];
             });
-            coreTasksFutures.add(resFuture);
+            resFutures.add(resFuture);
         }
-        for (CompletableFuture<Void> coreTasksFuture : coreTasksFutures) {
-            coreTasksFuture.join();
+        for (int m = 0; m < nfi; m++) {
+            resFutures.get(m).join();
         }
         long end2 = System.nanoTime();
-        printMillis(start2, end2, "BSOR: ");
+        printMillis(start2, end2, "all cores: ");
 
 
         // IFFT
@@ -180,38 +154,7 @@ public class CylinderPoissonFftBsorSolverParallel extends AbstractFftBsorCylinde
         return uinRes;
     }
 
-    private List<List<ModeInfo>> getCoreTasksLoad(List<ModeInfo> modeInfoList) {
-        modeInfoList.sort((a, b) -> Double.compare(b.weight, a.weight));
-        double totalSumWeight = 0.0;
-        for (ModeInfo mi : modeInfoList) {
-            totalSumWeight += mi.weight;
-        }
-        List<List<ModeInfo>> coreTasksLoad = new ArrayList<>();
-        int index = 0;
-        while (index < modeInfoList.size()) {
-            double avgLoad = totalSumWeight / (executor.getThreadsCount() - coreTasksLoad.size());
-            List<ModeInfo> oneCoreTask = new ArrayList<>();
-            double oneCoreTaskWeight = 0;
-            while (oneCoreTaskWeight < avgLoad) {
-                ModeInfo modeInfo = modeInfoList.get(index);
-                oneCoreTask.add(modeInfo);
-                index++;
-                if (index == modeInfoList.size())
-                    break;
-                oneCoreTaskWeight += modeInfo.weight;
-            }
-            coreTasksLoad.add(oneCoreTask);
-            for (ModeInfo modeTask : oneCoreTask) {
-                totalSumWeight -= modeTask.weight;
-                modeTask.omega = 1.95 - 0.95 * (coreTasksLoad.size() - 1) / executor.getThreadsCount();
-            }
-        }
-        return coreTasksLoad;
-    }
-
     public double[][][] solve(int num, double r, double z0, double z1, double hr, double hfi, double hz, double eps) {
         return solveByFftBsor(num, r, z0,z1, hr, hfi, hz, eps);
     }
 }
-
-
