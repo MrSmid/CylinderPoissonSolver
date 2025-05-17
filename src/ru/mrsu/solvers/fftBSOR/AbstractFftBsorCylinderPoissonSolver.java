@@ -147,14 +147,15 @@ public abstract class AbstractFftBsorCylinderPoissonSolver extends AbstractCylin
 
     protected double[] getOmegas(double[] lambdas, double nr, double nz, double hr, double hz) {
         double[] omegas = new double[lambdas.length];
-        double l_0 = 4 * ((Math.pow(Math.sin(Math.PI / (2 * (nr + 1))) / (hr * hr), 2)) + ((Math.pow(Math.sin(Math.PI / (2 * (nz + 1))) / (hz * hz), 2))));
+        double l_min_0 = 4 * ((Math.pow(Math.sin(Math.PI / (2 * (nr + 1))) / hr, 2)) + ((Math.pow(Math.sin(Math.PI / (2 * (nz + 1))) / hz, 2))));
+        double l_max_0 = 4 * ((Math.pow(Math.sin((nr * Math.PI) / (2 * (nr + 1))) / hr, 2)) + ((Math.pow(Math.sin((nz * Math.PI) / (2 * (nz + 1))) / hz, 2))));
 
-        omegas[0] = 1.95;
+        omegas[0] = 2 / (1 + Math.sqrt(1 - Math.pow((l_max_0 - l_min_0) / (l_max_0 + l_min_0), 2)));
 
         for (int i = 1; i < lambdas.length; i++) {
-            double l_max_i = l_0 + Math.abs(lambdas[i]) / hr;
-            double l_min_i = l_0 + Math.abs(lambdas[i]) / (nr * hr);
-            omegas[i] = 2 / (1 + Math.sqrt(1 - Math.pow(l_min_i / l_max_i, 2)));
+            double l_max_i = l_max_0 + Math.abs(lambdas[i]) / hr * hr;
+            double l_min_i = l_min_0 + Math.abs(lambdas[i]) / Math.pow(nr * hr, 2);
+            omegas[i] = 2 / (1 + Math.sqrt(1 - Math.pow((l_max_i - l_min_i) / (l_max_i + l_min_i), 2)));
         }
 
         return omegas;
