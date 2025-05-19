@@ -155,6 +155,10 @@ public class CylinderPoissonFftBsorSolverParallel extends AbstractFftBsorCylinde
     }
 
     public double[][][] solve(int num, double r, double z0, double z1, double hr, double hfi, double hz, double eps) {
-        return solveByFftBsor(num, r, z0,z1, hr, hfi, hz, eps);
+        long start = System.nanoTime();
+        double[][][] result = solveByFftBsor(num, r, z0, z1, hr, hfi, hz, eps);
+        long end = System.nanoTime();
+        writeCsvMetrics("fftBsorParallelMetrics", result, start, end, hr, hfi, hz);
+        return result;
     }
 }

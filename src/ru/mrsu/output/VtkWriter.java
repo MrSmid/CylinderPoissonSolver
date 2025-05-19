@@ -8,6 +8,8 @@ import java.io.IOException;
 
 public class VtkWriter {
 
+    private final static String folderPath = "src/ru/mrsu/results";
+
     public static void writeVtk(DecartCoords[][][] u, int nr, int nfi, int nz, String fileName) {
         int roundCriteria = 1000000;
         int nfiNew = nfi+1;
@@ -25,7 +27,6 @@ public class VtkWriter {
         }
 
         String fileNameFull = fileName + ".vtk";
-        String folderPath = "src/ru/mrsu/results";
 
         File folder = new File(folderPath);
 

@@ -1,10 +1,13 @@
 package ru.mrsu.solvers;
 
 import ru.mrsu.model.DecartCoords;
+import ru.mrsu.output.CsvWriter;
 import ru.mrsu.output.VtkWriter;
+import ru.mrsu.output.support.CsvHeaders;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public abstract class AbstractCylinderPoissonSolver {
 
@@ -98,6 +101,31 @@ public abstract class AbstractCylinderPoissonSolver {
     protected void printMillis(long start, long end, String prefix) {
         double diff = (end - start) / 1000000.;
         System.out.println(prefix + diff);
+    }
+
+    protected void writeCsvMetrics(String filename, double[][][] result, long start, long end, double hr, double hfi, double hz) {
+        double diff = (end - start);
+        double millis = diff / 1000000.;
+        double seconds = millis / 1000.;
+        double minutes = seconds / 60.;
+        int nr = result.length;
+        int nfi = result[0].length;
+        int nz = result[0][0].length;
+        int nodesTotal = nr * nfi * nz;
+
+        Map<CsvHeaders, String> data = Map.of(
+            CsvHeaders.COMMON_TIME_MS, String.valueOf(millis),
+            CsvHeaders.COMMON_TIME_S, String.valueOf(seconds),
+            CsvHeaders.COMMON_TIME_M, String.valueOf(minutes),
+            CsvHeaders.H_R, String.valueOf(hr),
+            CsvHeaders.H_FI, String.valueOf(hfi),
+            CsvHeaders.H_Z, String.valueOf(hz),
+            CsvHeaders.N_R, String.valueOf(nr),
+            CsvHeaders.N_FI, String.valueOf(nfi),
+            CsvHeaders.N_Z, String.valueOf(nz),
+            CsvHeaders.NODES_TOTAL, String.valueOf(nodesTotal)
+        );
+        CsvWriter.appendToCsv(filename, data);
     }
 
     public abstract double[][][] solve(int num, double r, double z0, double z1, double hr, double hfi, double hz, double eps);

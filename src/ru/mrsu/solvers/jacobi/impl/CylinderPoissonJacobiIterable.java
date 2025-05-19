@@ -107,6 +107,10 @@ public class CylinderPoissonJacobiIterable extends AbstractCylinderPoissonSolver
 
 
     public double[][][] solve(int num, double r, double z0, double z1, double hr, double hfi, double hz, double eps){
-        return jacobi(num, r, z0, z1, hr, hfi, hz, eps);
+        long start = System.nanoTime();
+        double[][][] result = jacobi(num, r, z0, z1, hr, hfi, hz, eps);
+        long end = System.nanoTime();
+        writeCsvMetrics("jacobiIterableMetrics", result, start, end, hr, hfi, hz);
+        return result;
     }
 }
